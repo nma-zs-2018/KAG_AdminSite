@@ -4,15 +4,23 @@ import requests
 from firebase_admin import credentials, messaging
 import json
 
-headers = {'User-Agent': ''}
+from web.models import PollData
 
 
 class Command(BaseCommand):
 
     def handle(self, *args, **options):
-        resp = requests.get('http://azuolynogimnazija.lt/json/svarbu', headers=headers)
-        print(resp.text)
+        resp = requests.get('http://azuolynogimnazija.lt/json/svarbu', headers={'User-Agent': ''})
         data = json.loads(resp.text)
+        last = PollData.objects.get(id='alert')
+        if not last:
+            obj = PollData()
+            obj.timestamp = data['updated_at']
+            obj.id = data['alert']
+            obj.save()
+        elif last.timestamp == data['updated_at']:
+            return
+
         cred = credentials.Certificate('service_key.json')
 
         try:
